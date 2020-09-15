@@ -1,6 +1,6 @@
 import {Request, Response, NextFunction} from 'express'
 import {Post, PostDocument} from '../models/Post'
-import {check, validationResult, sanitize} from 'express-validator'
+import {check, validationResult} from 'express-validator'
 import {ActionType} from '../util/enums'
 
 const PAGE_SIZE = 5
