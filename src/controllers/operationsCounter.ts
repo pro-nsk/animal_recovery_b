@@ -1,13 +1,29 @@
 import { NextFunction, Request, Response } from 'express'
-import { validationResult } from 'express-validator'
+import { check, validationResult } from 'express-validator'
 import { OperationsCounter, OperationsCounterDocument } from '../models/OperationsCounter'
+import { ActionType } from '../util/enums'
+
+export const validate = (method: ActionType) => {
+    switch (method) {
+        case ActionType.edit: {
+            return [
+                check('counter', 'Счётчик должен быть числом').isNumeric()
+            ]
+        }
+        case ActionType.create: {
+            return [
+                check('counter', 'Счётчик должен быть числом').isNumeric()
+            ]
+        }
+    }
+}
 
 /**
- * GET /operations-counter/id
+ * GET /operations-counter
  * OperationsCounter entity.
  */
 export const getOperationsCounter = (req: Request, res: Response) => {
-    OperationsCounter.findById(req.params.id, (err, article) => {
+    OperationsCounter.findOne(undefined, (err, article) => {
         if (!article) {
             res.statusCode = 404
             return res.send({ error: 'не найдено' })
@@ -36,24 +52,32 @@ export const createOperationsCounter = (req: Request, res: Response, next: NextF
         return res.send({ error: errors.array()[0].msg })
     }
 
-    let operationsCounter = new OperationsCounter({
-        counter: req.body.counter
-    })
-
-    let saveFunc = (operationsCounter: OperationsCounterDocument) => operationsCounter.save(err => {
-        if (!err) {
-            return res.sendStatus(200)
-        } else {
-            res.statusCode = 500
-            return res.send({ error: 'server error' })
+    OperationsCounter.findOne(undefined, (err, article) => {
+        if (article) {
+            res.statusCode = 409
+            return res.send({ error: 'Счётчик уже создан' })
         }
-    })
 
-    saveFunc(operationsCounter)
+        let operationsCounter = new OperationsCounter({
+            counter: req.body.counter
+        })
+    
+        let saveFunc = (operationsCounter: OperationsCounterDocument) => operationsCounter.save(err => {
+            if (!err) {
+                res.statusCode = 200
+                return res.send({ success: 'ok' })
+            } else {
+                res.statusCode = 500
+                return res.send({ error: 'server error' })
+            }
+        })
+    
+        saveFunc(operationsCounter)
+    })
 }
 
 /**
- * PUT /operations-counter/:id
+ * PUT /operations-counter
  * Edit OperationsCounter.
  */
 export const editOperationsCounter = (req: Request, res: Response, next: NextFunction) => {
@@ -66,10 +90,10 @@ export const editOperationsCounter = (req: Request, res: Response, next: NextFun
         return res.send({ error: errors.array()[0].msg })
     }
 
-    OperationsCounter.findById(req.params.id, (err, operationsCounter) => {
+    OperationsCounter.findOne(undefined, (err, operationsCounter) => {
         if (!operationsCounter) {
             res.statusCode = 404
-            return res.send({ error: 'not found' })
+            return res.send({ error: 'не найдено' })
         }
 
         operationsCounter.counter = req.body.counter
@@ -84,26 +108,5 @@ export const editOperationsCounter = (req: Request, res: Response, next: NextFun
         })
 
         saveFunc(operationsCounter)
-    })
-}
-
-/**
- * DELETE /operations-counter
- * Delete OperationsCounter.
- */
-export const deleteOperationsCounter = (req: Request, res: Response) => {
-    OperationsCounter.findById(req.params.id, (err, article) => {
-        if (!article) {
-            res.statusCode = 404
-            return res.send({ error: 'not found' })
-        }
-        return article.remove(err => {
-            if (!err) {
-                return res.sendStatus(200)
-            } else {
-                res.statusCode = 500
-                return res.send({ error: 'server error' })
-            }
-        })
     })
 }

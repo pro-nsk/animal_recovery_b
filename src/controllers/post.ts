@@ -3,26 +3,13 @@ import {Post, PostDocument} from '../models/Post'
 import {check, validationResult, sanitize} from 'express-validator'
 import {ActionType} from '../util/enums'
 
-const PAGE_SIZE = 10
+const PAGE_SIZE = 5
 
 export const validate = (method: ActionType) => {
     switch (method) {
         case ActionType.create: {
             return [
-                check('imageUrl', 'incorrect image url').isURL(),
-                check('urlName', 'spaces are not allowed in url name').not().contains(' '),
-                check('urlName', 'reserved url name').not().equals('create'),
-                check('urlName', 'reserved url name').not().equals('edit'),
-                check('urlName', 'reserved url name').not().equals('login'),
-                check('urlName', 'reserved url name').not().equals('logout'),
-                check('urlName', 'reserved url name').not().equals('register'),
-                sanitize('urlName').customSanitizer(url => {
-                    if (url != undefined && url.length == 0) {
-                        return undefined
-                    } else {
-                        return url
-                    }
-                })
+                check('mainImage', 'incorrect image url').isURL()
             ]
         }
     }
@@ -36,26 +23,10 @@ export const getPosts = (req: Request, res: Response) => {
     Post.find().sort({'_id': -1}).skip(PAGE_SIZE * req.params.page).limit(PAGE_SIZE).exec((err, posts) => {
         if (!err) {
             posts.forEach(post => {
-                if (post.text && post.text.length > 200) {
-                    post.text = post.text.substring(0, 200) + '... '
+                if (post.text && post.text.length > 100) {
+                    post.text = post.text.substring(0, 100) + '... '
                 }
             })
-            res.statusCode = 200
-            return res.send(posts)
-        } else {
-            res.statusCode = 500
-            return res.send({error: 'server error'})
-        }
-    })
-}
-
-/**
- * GET /menu
- * Post list.
- */
-export const getPostList = (req: Request, res: Response) => {
-    Post.find({urlName: {$exists: true}}).select('urlName').sort({'_id': -1}).exec((err, posts) => {
-        if (!err) {
             res.statusCode = 200
             return res.send(posts)
         } else {
@@ -85,27 +56,6 @@ export const getPost = (req: Request, res: Response) => {
 }
 
 /**
- * GET /urlname
- * Post entity by url name.
- */
-export const findByUrlName = (req: Request, res: Response) => {
-    Post.findOne({urlName: req.params.urlname}, (err, post) => {
-        if (!post) {
-            res.statusCode = 404
-            return res.send({error: 'not found'})
-        }
-        if (!err) {
-            res.statusCode = 200
-            return res.send(post)
-        } else {
-            res.statusCode = 500
-            return res.send({error: 'server error'})
-        }
-    })
-}
-
-
-/**
  * POST /post
  * New post.
  */
@@ -120,8 +70,7 @@ export const createPost = (req: Request, res: Response, next: NextFunction) => {
     }
 
     let post = new Post({
-        urlName: req.body.urlName,
-        mainImage: req.body.imageUrl,
+        mainImage: req.body.mainImage,
         text: req.body.text
     })
 
@@ -168,8 +117,7 @@ export const editPost = (req: Request, res: Response, next: NextFunction) => {
             return res.send({error: 'not found'})
         }
 
-        post.urlName = req.body.urlName
-        post.mainImage = req.body.imageUrl
+        post.mainImage = req.body.mainImage
         post.text = req.body.text
 
         let saveFunc = (post: PostDocument) => post.save(err => {
