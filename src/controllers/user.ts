@@ -8,7 +8,8 @@ import { ActionType } from '../util/enums'
 
 const ALLOWED_EMAILS = [
     'motors@live.ru',
-    'nachalo42@gmail.com'
+    'nachalo42@gmail.com',
+    'info.animalrecovery54@gmail.com'
 ]
 
 export const validate = (method: ActionType) => {
